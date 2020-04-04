@@ -20,6 +20,8 @@ def get_merchants_to_check():
 
 if __name__ == '__main__':
     primenow_checker = PrimeNowChecker()
+    primenow_checker.login()
+    exit()
 
     merchants_to_check = get_merchants_to_check()
     seconds_between_requests = int(input('Set seconds between requests (60): ') or '60')
