@@ -1,4 +1,5 @@
 import requests
+import re
 from bs4 import BeautifulSoup
 
 import config
@@ -11,18 +12,17 @@ class PrimeNowChecker:
         'checkout': 'checkout/enter-checkout?merchantId='
     }
 
-    CHECKS = {
-        'unavailable_windows': 'Actualmente no hay ventanas de entrega',
-        'unavailable_products': '1 producto ya no está disponible',
-    }
+    merchant = None
+    n_errors = 0
+    products = []
 
-    def __init__(self):
-        self.n_errors = 0
+    def __init__(self, merchant):
+        self.merchant = merchant
 
-    def check_merchant(self, merchant):
-        print(f'Checking {merchant.get("name")}...')
+    def check(self):
+        print(f'Checking {self.merchant.get("name")}...')
 
-        url = self.PATHS.get('url') + self.PATHS.get('checkout') + merchant.get('id')
+        url = self.PATHS['url'] + self.PATHS['checkout'] + self.merchant['id']
 
         response = requests.get(
             url=url,
@@ -30,33 +30,35 @@ class PrimeNowChecker:
             cookies=config.cookie
         )
 
-        available_windows = self.get_available_windows(response)
+        try:
+            available_windows = self.get_available_windows(response)
+        except AssertionError:
+            print('err')
+            self.n_errors += 1
+
+            self.save_response(response, 'response_error.html')
+
+            if self.n_errors == 3:
+                self.notify('Error on check windows')
+
+                raise Exception('Error on check windows')
+
+            return
+
+        self.check_products(response)
 
         if len(available_windows) > 0:
-            message = f'¡Available windows on {merchant.get("name")}!\n\nAvailable windows:\n\n' + '\n'.join(available_windows)
+            message = f'¡Available windows on {self.merchant.get("name")}!\n\nAvailable windows:\n\n' + '\n'.join(available_windows)
 
             self.notify(message)
 
             self.save_response(response, 'response_ranges.html')
 
             exit()
-        elif self.CHECKS.get('unavailable_windows') in response.text:
-            self.reset_errors()
-
-            print(f'Not available windows on {merchant.get("name")}')
-        elif self.CHECKS.get('unavailable_products') in response.text:
-            self.reset_errors()
-
-            self.notify('One product has been deleted from your cart')
         else:
-            self.n_errors += 1
+            self.reset_errors()
 
-            if self.n_errors == 3:
-                self.notify('Error on check windows')
-
-                self.save_response(response, 'response_error.html')
-
-                exit(-1)
+            print(f'Not available windows on {self.merchant.get("name")}')
 
     def get_headers(self):
         user_agent = 'Mozilla/5.0 (X11;Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'
@@ -71,6 +73,8 @@ class PrimeNowChecker:
     def get_available_windows(self, response):
         html_response = BeautifulSoup(response.text, 'html.parser')
 
+        assert len(html_response.select('form#delivery-slot-form')) == 1, 'Not checkout page'
+
         available_windows = html_response.select('[data-a-input-name="delivery-window-radio"] span.a-color-base')
 
         return [window.text.replace('\n', '').strip() for window in available_windows]
@@ -84,3 +88,40 @@ class PrimeNowChecker:
     def save_response(self, response, filename):
         with open(f'responses/{filename}', 'w') as file:
             file.write(response.text)
+
+    def check_products(self, response):
+        cart_items = self.get_products_from_response(response)
+
+        products_removed = []
+        products_quantity_removed = []
+
+        for product in self.products:
+            item = next((item for item in cart_items if item['product'] == product['product']), None)
+
+            if item is None:
+                products_removed.append(product)
+            elif item['quantity'] < product['quantity']:
+                products_quantity_removed.append(item)
+
+        alerts = ''
+
+        if len(products_removed) > 0:
+            alerts += 'The next product/s has been removed from your cart:\n\n'
+            alerts += '\n'.join(['- ' + product['product'] for product in products_removed]) + '\n\n'
+
+        if len(products_quantity_removed) > 0:
+            alerts += 'The next product/s has been decrease the quantity from your cart:\n\n'
+            alerts += '\n'.join(['- ' + product['product'] + f" ({product['quantity']})" for product in products_quantity_removed]) + '\n\n'
+
+        if alerts != '':
+            self.notify(alerts)
+
+        self.products = cart_items
+
+    def get_products_from_response(self, response):
+        html_response = BeautifulSoup(response.text, 'html.parser')
+
+        return [{
+            'product': item.select('.a-text-bold')[0].text.replace('\n', '').strip(),
+            'quantity': re.match(".*?Cant.: ([0-9]*)", item.text.replace('\n', '')).groups()[0]
+        } for item in html_response.select('.checkout-item-container')]

@@ -2,13 +2,13 @@
 
 Bot to check if there are available windows on amazon prime now.
 
-#### Requirements
+## Requirements
 
 - PrimeNow account.
 - Docker.
 - Python >= 3.7 (if you don't use docker).
 
-#### Instructions
+## Instructions
 
 - Copy environment file example .env.example to .env and fill it:
     - Telegram vars:
@@ -30,7 +30,7 @@ Bot to check if there are available windows on amazon prime now.
 *Python command line usage instructions*
 - Install dependencies: `pip install -r requirements.txt`
 
-#### Telegram instructions
+## Telegram instructions
 
 To get telegram notifications, you must follow create your own bot following this instructions:
 
@@ -42,13 +42,13 @@ To get telegram notifications, you must follow create your own bot following thi
 - Copy the `token` and join to it with your account (search it by username).
 - To get the `id`, join to it and on same session (browser), navigate to `https://api.telegram.org/bot<token>/getUpdates` and search the `id` on json.
 
-#### Usage
+## Usage
 
 - Using docker: `docker container run -it primenow_checker`.
 - Using python command line: `python app.py`.
 - Follow the instructions.
 
-#### Additional info
+## Additional info
 
 - If you don't want to put your credentials on .env file, you can pass it on docker run execution:
 
@@ -56,12 +56,11 @@ To get telegram notifications, you must follow create your own bot following thi
 docker container run -e ENV_VAR=xxxx -e ENV_VAR=xxxx -e ... -it primenow_checker
 ```
 
-#### TODO
+## TODO
 
 - Login with username/password instead cookies.
-- Specify product when is unavailable on notification.
 
-#### Disclaimers
+## Disclaimers
 
 - This script works only on spanish prime now version.
 - Use only for study purposes.
