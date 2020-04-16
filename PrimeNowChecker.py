@@ -33,7 +33,6 @@ class PrimeNowChecker:
         try:
             available_windows = self.get_available_windows(response)
         except AssertionError:
-            print('err')
             self.n_errors += 1
 
             self.save_response(response, 'response_error.html')
