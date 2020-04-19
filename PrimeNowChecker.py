@@ -53,11 +53,13 @@ class PrimeNowChecker:
 
             self.save_response(response, 'response_ranges.html')
 
-            exit()
+            return True
         else:
             self.reset_errors()
 
             print(f'Not available windows on {self.merchant.get("name")}')
+
+        return False
 
     def get_headers(self):
         user_agent = 'Mozilla/5.0 (X11;Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.122 Safari/537.36'
@@ -105,11 +107,11 @@ class PrimeNowChecker:
         alerts = ''
 
         if len(products_removed) > 0:
-            alerts += 'The next product/s has been removed from your cart:\n\n'
+            alerts += f'The next product/s has been removed from your cart ({self.merchant.get("name")}):\n\n'
             alerts += '\n'.join(['- ' + product['product'] for product in products_removed]) + '\n\n'
 
         if len(products_quantity_removed) > 0:
-            alerts += 'The next product/s has been decrease the quantity from your cart:\n\n'
+            alerts += f'The next product/s has been decrease the quantity from your cart ({self.merchant.get("name")}):\n\n'
             alerts += '\n'.join(['- ' + product['product'] + f" ({product['quantity']})" for product in products_quantity_removed]) + '\n\n'
 
         if alerts != '':

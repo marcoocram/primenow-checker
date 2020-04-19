@@ -24,8 +24,11 @@ def get_merchants_to_check():
 if __name__ == '__main__':
     merchants_checkers = get_merchants_to_check()
     seconds_between_requests = int(input('Set seconds between requests (60): ') or '60')
+    stop_on_found = True if (input('Stop check when window available? [y]/n: ') or 'y').lower() == 'y' else False
 
-    while True:
-        for merchant_checker in merchants_checkers:
-            merchant_checker.check()
+    while merchants_checkers:
+        for merchant_checker in merchants_checkers[:]:
+            if merchant_checker.check() and stop_on_found:
+                merchants_checkers.remove(merchant_checker)
+
             time.sleep(seconds_between_requests)
